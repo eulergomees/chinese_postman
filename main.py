@@ -1,6 +1,7 @@
 import csv
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from itertools import permutations
 import heapq
 
@@ -28,32 +29,25 @@ def plot_graph(G, title="Grafo"):
 
 
 def dijkstra_path(G, source, target, weight="weight"):
-    """Retorna o caminho mais curto entre source e target usando o algoritmo de Dijkstra."""
-    # Dicionário para armazenar as menores distâncias
     distances = {node: float('inf') for node in G.nodes}
     distances[source] = 0
     previous_nodes = {node: None for node in G.nodes}
-
-    # Fila de prioridade (heap) para explorar os nós em ordem crescente de distância
-    pq = [(0, source)]  # (distância acumulada, nó atual)
+    pq = [(0, source)]
 
     while pq:
         current_distance, current_node = heapq.heappop(pq)
 
-        # Se chegarmos ao destino, reconstruímos o caminho
         if current_node == target:
             path = []
             while current_node is not None:
                 path.append(current_node)
                 current_node = previous_nodes[current_node]
-            return path[::-1]  # Inverter para obter o caminho correto
+            return path[::-1]
 
-        # Explorar os vizinhos
         for neighbor in G.neighbors(current_node):
-            edge_weight = G[current_node][neighbor].get(weight, 1)  # Pega o peso da aresta
+            edge_weight = G[current_node][neighbor].get(weight, 1)
             new_distance = current_distance + edge_weight
 
-            # Atualiza a distância mínima conhecida até o vizinho
             if new_distance < distances[neighbor]:
                 distances[neighbor] = new_distance
                 previous_nodes[neighbor] = current_node
@@ -91,13 +85,28 @@ def dijkstra_path_length(G, source, target, weight="weight"):
     raise nx.NetworkXNoPath(f"Não há caminho entre {source} e {target}.")
 
 
-def dijkstra_shortest_path(G, source, target):
-    return dijkstra_path(G, source, target, weight='weight')
+def animate_chinese_postman(G, solution):
+    pos = nx.spring_layout(G)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    labels = nx.get_edge_attributes(G, 'weight')
+
+    def update(frame):
+        ax.clear()
+        nx.draw(G, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=2000, font_size=10)
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+        edges_to_draw = solution[:frame + 1]
+        nx.draw_networkx_edges(G, pos, edgelist=edges_to_draw, edge_color='red', width=2)
+        plt.title("Passo {} da execução".format(frame + 1))
+
+    ani = animation.FuncAnimation(fig, update, frames=len(solution), interval=1000, repeat=False)
+    plt.show()
 
 
 def chinese_postman(G):
     if nx.is_eulerian(G):
-        return list(nx.eulerian_circuit(G))
+        circuit = list(nx.eulerian_circuit(G))
+        total_weight = sum(G[u][v]['weight'] for u, v in circuit)
+        return circuit, total_weight
 
     odd_degree_nodes = [node for node in G.nodes if G.degree[node] % 2 == 1]
     min_pairs = None
@@ -111,15 +120,19 @@ def chinese_postman(G):
             min_pairs = pairs
 
     for u, v in min_pairs:
-        path = dijkstra_shortest_path(G, u, v)
+        path = dijkstra_path(G, u, v)
         for i in range(len(path) - 1):
             G.add_edge(path[i], path[i + 1], weight=G[path[i]][path[i + 1]]['weight'])
 
-    return list(nx.eulerian_circuit(G))
+    circuit = list(nx.eulerian_circuit(G))
+    total_weight = sum(G[u][v]['weight'] for u, v in circuit)
+    return circuit, total_weight
 
 
 # Exemplo de uso
 graph = read_graph_from_csv("grafo.csv")
-solution = chinese_postman(graph)
+solution, total_weight = chinese_postman(graph)
 print("Caminho do carteiro chinês:", solution)
+print("Soma dos pesos do caminho:", total_weight)
 plot_graph(graph)
+animate_chinese_postman(graph, solution)
