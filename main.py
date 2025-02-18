@@ -5,6 +5,8 @@ import matplotlib.animation as animation
 from itertools import permutations
 import heapq
 
+from graphgenerator import gerar_grafo_euleriano, salvar_grafo_csv
+
 
 def read_graph_from_csv(file_path):
     G = nx.Graph()
@@ -128,6 +130,11 @@ def chinese_postman(G):
     total_weight = sum(G[u][v]['weight'] for u, v in circuit)
     return circuit, total_weight
 
+# Criar e salvar dois grafos Eulerianos
+#G1 = gerar_grafo_euleriano(nos=5, arestas=8)
+#G2 = gerar_grafo_euleriano(nos=6, arestas=10)
+#salvar_grafo_csv(G1, "grafo1.csv")
+#salvar_grafo_csv(G2, "grafo2.csv")
 
 # Exemplo de uso
 graph = read_graph_from_csv("grafo.csv")
